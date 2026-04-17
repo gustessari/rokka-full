@@ -11,11 +11,12 @@ export interface AuthContextType {
   token: string | null;
   vaultKey: string | null;
   isLocked: boolean;
+  hasVaultKey: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  setVaultKey: (key: string) => void;
-  lockVault: () => void;
+  unlockVault: (key: string) => Promise<void>;
+  lockVault: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 

@@ -45,6 +45,9 @@ export const api = {
     login: (email: string, password: string) =>
       request<{ token: string; user: { email: string; storageLimitBytes: number; storageUsedBytes: number } }>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
     me: () => request<{ email: string; storageLimitBytes: number; storageUsedBytes: number }>('/auth/me'),
+    getVaultKeyVerifier: () => request<{ verifier: string }>('/auth/vault-key-verifier'),
+    setVaultKeyVerifier: (verifier: string) =>
+      request<{ message: string }>('/auth/vault-key-verifier', { method: 'POST', body: JSON.stringify({ verifier }) }),
   },
   sections: {
     list: () => request<Section[]>('/sections'),

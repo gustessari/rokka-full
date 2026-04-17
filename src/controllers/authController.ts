@@ -33,3 +33,16 @@ export async function getMe(req: Request, res: Response) {
   if (!user) return res.status(404).json({ error: 'User not found' });
   res.json(user);
 }
+
+export async function setVaultKeyVerifier(req: Request, res: Response) {
+  const { verifier } = req.body;
+  if (!verifier) return res.status(400).json({ error: 'verifier is required' });
+  await User.findByIdAndUpdate(req.user!._id, { vaultKeyVerifier: verifier });
+  res.json({ message: 'Vault key verifier saved' });
+}
+
+export async function getVaultKeyVerifier(req: Request, res: Response) {
+  const user = await User.findById(req.user!._id).select('vaultKeyVerifier');
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  res.json({ verifier: user.vaultKeyVerifier || '' });
+}
