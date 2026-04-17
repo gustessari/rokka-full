@@ -1,10 +1,13 @@
 import { Request, Response } from 'express';
-import User from '../models/User';
+import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
 export async function register(req: Request, res: Response) {
   const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
   const passwordHash = await bcrypt.hash(password, 10);
   try {
     await User.create({ email, passwordHash });
@@ -22,5 +25,11 @@ export async function login(req: Request, res: Response) {
   }
 
   const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET as string, { expiresIn: '7d' });
-  res.json({ token });
+  res.json({ token, user: { email: user.email, storageLimitBytes: user.storageLimitBytes, storageUsedBytes: user.storageUsedBytes } });
+}
+
+export async function getMe(req: Request, res: Response) {
+  const user = await User.findById(req.user!._id).select('-passwordHash');
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  res.json(user);
 }
