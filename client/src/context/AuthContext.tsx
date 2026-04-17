@@ -1,29 +1,9 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { api } from '../utils/api';
-
-interface User {
-  email: string;
-  storageLimitBytes: number;
-  storageUsedBytes: number;
-}
-
-interface AuthContextType {
-  user: User | null;
-  token: string | null;
-  vaultKey: string | null;
-  isLocked: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  setVaultKey: (key: string) => void;
-  lockVault: () => void;
-  refreshUser: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | null>(null);
+import { AuthContext } from './authContext';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<{ email: string; storageLimitBytes: number; storageUsedBytes: number } | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [vaultKey, setVaultKeyState] = useState<string | null>(sessionStorage.getItem('vaultKey'));
   const [isLocked, setIsLocked] = useState(!sessionStorage.getItem('vaultKey'));
@@ -80,10 +60,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
 }

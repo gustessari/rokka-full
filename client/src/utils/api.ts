@@ -19,6 +19,25 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json();
 }
 
+export interface Section {
+  _id: string;
+  userId: string;
+  name: string;
+  icon: string;
+  order: number;
+  createdAt: string;
+}
+
+export interface VaultItem {
+  _id: string;
+  userId: string;
+  sectionId: string;
+  type: string;
+  encryptedData: string;
+  sizeBytes: number;
+  createdAt: string;
+}
+
 export const api = {
   auth: {
     register: (email: string, password: string) =>
@@ -49,22 +68,3 @@ export const api = {
       request<{ message: string }>('/vault/bulk-update', { method: 'POST', body: JSON.stringify({ items }) }),
   },
 };
-
-export interface Section {
-  _id: string;
-  userId: string;
-  name: string;
-  icon: string;
-  order: number;
-  createdAt: string;
-}
-
-export interface VaultItem {
-  _id: string;
-  userId: string;
-  sectionId: string;
-  type: string;
-  encryptedData: string;
-  sizeBytes: number;
-  createdAt: string;
-}

@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { api, Section, VaultItem } from '../utils/api';
+import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { api } from '../utils/api';
+import type { Section, VaultItem } from '../utils/api';
 import { encrypt, decrypt, isEncrypted } from '../utils/crypto';
 import Sidebar from '../components/Sidebar';
 import VaultGrid from '../components/VaultGrid';
@@ -14,68 +15,76 @@ export default function Dashboard() {
   const [items, setItems] = useState<VaultItem[]>([]);
   const [showAddItem, setShowAddItem] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const initialLoad = useRef(false);
 
-  const loadSections = useCallback(async () => {
-    const s = await api.sections.list();
-    setSections(s);
-    if (s.length > 0 && !activeSection) setActiveSection(s[0]._id);
-  }, [activeSection]);
+  useEffect(() => {
+    if (initialLoad.current) return;
+    initialLoad.current = true;
+    api.sections.list().then(s => {
+      setSections(s);
+      if (s.length > 0) setActiveSection(s[0]._id);
+    }).finally(() => setLoading(false));
+  }, []);
 
-  const loadItems = useCallback(async () => {
-    if (!activeSection) { setItems([]); return; }
-    const raw = await api.vault.list(activeSection);
-    if (!vaultKey) { setItems(raw); return; }
-    const decrypted = raw.map(item => {
-      try {
-        if (isEncrypted(item.encryptedData)) {
-          const plain = decrypt(item.encryptedData, vaultKey);
-          return { ...item, encryptedData: plain || item.encryptedData };
+  useEffect(() => {
+    if (!activeSection) return;
+    let cancelled = false;
+    api.vault.list(activeSection).then(raw => {
+      if (cancelled) return;
+      if (!vaultKey) { setItems(raw); return; }
+      setItems(raw.map(item => {
+        try {
+          if (isEncrypted(item.encryptedData)) {
+            const plain = decrypt(item.encryptedData, vaultKey);
+            return { ...item, encryptedData: plain || item.encryptedData };
+          }
+          return item;
+        } catch {
+          return item;
         }
-        return item;
-      } catch {
-        return item;
-      }
+      }));
     });
-    setItems(decrypted);
-  }, [activeSection, vaultKey]);
+    return () => { cancelled = true; };
+  }, [activeSection, vaultKey, refreshKey]);
 
-  useEffect(() => {
-    loadSections().finally(() => setLoading(false));
-  }, [loadSections]);
-
-  useEffect(() => {
-    if (activeSection) loadItems();
-  }, [activeSection, loadItems]);
+  const reloadItems = () => setRefreshKey(k => k + 1);
 
   const handleAddSection = async (name: string, icon: string) => {
-    await api.sections.create(name, icon);
-    await loadSections();
+    const section = await api.sections.create(name, icon);
+    const updated = await api.sections.list();
+    setSections(updated);
+    setActiveSection(section._id);
   };
 
   const handleDeleteSection = async (id: string) => {
     await api.sections.delete(id);
-    if (activeSection === id) setActiveSection(null);
-    await loadSections();
+    const updated = await api.sections.list();
+    setSections(updated);
+    if (activeSection === id) {
+      setActiveSection(updated.length > 0 ? updated[0]._id : null);
+    }
     await refreshUser();
   };
 
   const handleRenameSection = async (id: string, name: string) => {
     await api.sections.update(id, { name });
-    await loadSections();
+    const updated = await api.sections.list();
+    setSections(updated);
   };
 
   const handleAddItem = async (type: string, data: string) => {
     if (!activeSection || !vaultKey) return;
     const encrypted = encrypt(data, vaultKey);
     await api.vault.save({ sectionId: activeSection, type, encryptedData: encrypted });
-    await loadItems();
+    reloadItems();
     await refreshUser();
     setShowAddItem(false);
   };
 
   const handleDeleteItem = async (id: string) => {
     await api.vault.delete(id);
-    await loadItems();
+    reloadItems();
     await refreshUser();
   };
 

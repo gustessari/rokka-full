@@ -1,4 +1,4 @@
-import { VaultItem } from '../utils/api';
+import type { VaultItem } from '../utils/api';
 import { isEncrypted } from '../utils/crypto';
 
 interface Props {

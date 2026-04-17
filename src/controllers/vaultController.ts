@@ -41,9 +41,10 @@ export async function getVaultItems(req: Request, res: Response) {
 
 export async function deleteVaultItem(req: Request, res: Response) {
   const { id } = req.params;
-  const item = await VaultItem.findOneAndDelete({ _id: id, userId: req.user!._id });
+  const item = await VaultItem.findOne({ _id: id, userId: req.user!._id });
   if (!item) return res.status(404).json({ error: 'Item not found' });
 
+  await VaultItem.deleteOne({ _id: id });
   await User.findByIdAndUpdate(req.user!._id, { $inc: { storageUsedBytes: -item.sizeBytes } });
   res.json({ message: 'Item deleted' });
 }

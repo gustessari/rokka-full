@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Section } from '../utils/api';
+import type { Section } from '../utils/api';
 
 interface Props {
   sections: Section[];
